@@ -1,15 +1,21 @@
-"use client"
+"use client";
 
-import { useSession } from "next-auth/react"
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import {
   User,
   Calendar,
@@ -21,45 +27,52 @@ import {
   Save,
   Loader2,
   MoonIcon,
-} from "lucide-react"
-import { Header } from "@/components/header"
-import { useSettingsContext } from "@/contexts/settings-context"
+  CrossIcon,
+  CrosshairIcon,
+  DeleteIcon,
+} from "lucide-react";
+import { Header } from "@/components/header";
+import { useSettingsContext } from "@/contexts/settings-context";
 
 type StatsState = {
-  totalSessions: number
-  totalFocusTime: number // minutes
-  averageFocus: number
-  currentStreak: number
-  bestStreak: number
-}
+  totalSessions: number;
+  totalFocusTime: number; // minutes
+  averageFocus: number;
+  currentStreak: number;
+  bestStreak: number;
+};
 
 type FormState = {
-  name: string
-  email: string
-  focusGoal: number
-  breakDuration: number
-  dailyTarget: number
-}
+  name: string;
+  email: string;
+  focusGoal: number;
+  breakDuration: number;
+  dailyTarget: number;
+};
 
 type UserProfile = {
-  name: string | null
-  email: string | null
-  image: string | null
+  name: string | null;
+  email: string | null;
+  image: string | null;
   preferences?: {
-    focusGoal?: number
-    breakDuration?: number
-    dailyTarget?: number
-  }
-}
+    focusGoal?: number;
+    breakDuration?: number;
+    dailyTarget?: number;
+  };
+};
 
 export default function ProfilePage() {
-  const { data: session, status } = useSession()
-  const router = useRouter()
+  const { data: session, status } = useSession();
+  const router = useRouter();
 
-  const { settings, updateSettings, isLoading: settingsLoading } = useSettingsContext()
+  const {
+    settings,
+    updateSettings,
+    isLoading: settingsLoading,
+  } = useSettingsContext();
 
-  const [isEditing, setIsEditing] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [stats, setStats] = useState<StatsState>({
     totalSessions: 0,
@@ -67,7 +80,7 @@ export default function ProfilePage() {
     averageFocus: 0,
     currentStreak: 0,
     bestStreak: 0,
-  })
+  });
 
   const [formData, setFormData] = useState<FormState>({
     name: "",
@@ -75,33 +88,33 @@ export default function ProfilePage() {
     focusGoal: 25,
     breakDuration: 5,
     dailyTarget: 4,
-  })
+  });
 
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
-  const [avatarData, setAvatarData] = useState<string | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarData, setAvatarData] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.push("/auth/signin")
-      return
+      router.push("/auth/signin");
+      return;
     }
 
     if (status === "authenticated" && !settingsLoading) {
-      fetchUserProfile()
-      fetchUserStats()
+      fetchUserProfile();
+      fetchUserStats();
     }
-  }, [status, settingsLoading, router])
+  }, [status, settingsLoading, router]);
 
   const fetchUserProfile = async () => {
     try {
-      const res = await fetch("/api/users/me")
-      if (!res.ok) return
-      const json = await res.json()
-      const user = json.user as UserProfile
+      const res = await fetch("/api/users/me");
+      if (!res.ok) return;
+      const json = await res.json();
+      const user = json.user as UserProfile;
 
-      setUserProfile(user)
+      setUserProfile(user);
 
       setFormData((prev) => ({
         ...prev,
@@ -116,64 +129,61 @@ export default function ProfilePage() {
           user.preferences?.breakDuration ??
           prev.breakDuration,
         dailyTarget: user.preferences?.dailyTarget ?? prev.dailyTarget,
-      }))
+      }));
 
       if (user.image) {
-        setAvatarPreview(user.image)
+        setAvatarPreview(user.image);
       }
     } catch (error) {
-      console.error("Error fetching user profile:", error)
+      console.error("Error fetching user profile:", error);
     }
-  }
+  };
 
   const fetchUserStats = async () => {
     try {
-      const response = await fetch("/api/users/me/stats")
-      if (!response.ok) return
+      const response = await fetch("/api/users/me/stats");
+      if (!response.ok) return;
 
-      const json = await response.json()
-      // Expecting { stats: { ... } }
-      const data = json.stats ?? json
-
-      const totalSessions = data.totalSessions ?? 0
-      const totalFocusTime = data.totalFocusTime ?? 0 // minutes
-      const averageFocus = data.averageFocus ?? 0
-      const currentStreak = data.currentStreak ?? 0
-      const bestStreak = data.bestStreak ?? currentStreak
+      const json = await response.json();
+      const apiStats = json.stats || {};
 
       setStats({
-        totalSessions,
-        totalFocusTime,
-        averageFocus,
-        currentStreak,
-        bestStreak,
-      })
+        totalSessions: apiStats.totalSessions ?? 0,
+        totalFocusTime: apiStats.totalFocusTime ?? 0, // minutes
+        averageFocus: apiStats.averageFocus ?? 0,
+        currentStreak: apiStats.currentStreak ?? 0,
+        bestStreak: apiStats.bestStreak ?? 0,
+      });
     } catch (error) {
-      console.error("Error fetching stats:", error)
+      console.error("Error fetching stats:", error);
     }
-  }
+  };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    const reader = new FileReader()
+    const reader = new FileReader();
     reader.onloadend = () => {
-      const result = reader.result as string
-      setAvatarPreview(result)
-      setAvatarData(result)
-    }
-    reader.readAsDataURL(file)
-  }
+      const result = reader.result as string;
+      setAvatarPreview(result);
+      setAvatarData(result);
+    };
+    reader.readAsDataURL(file);
+  };
+  const handleRemovePhoto = () => {
+    setAvatarPreview(null);
+    setAvatarData(""); // special value meaning "clear image"
+  };
 
   const handleSave = async () => {
-    setIsSaving(true)
+    setIsSaving(true);
     try {
       // 1) Update app-wide timer settings (used by timer-interface)
       await updateSettings({
         focusDuration: formData.focusGoal,
         shortBreakDuration: formData.breakDuration,
-      })
+      });
 
       // 2) Update profile in DB (name, prefs, avatar)
       const res = await fetch("/api/users/me", {
@@ -186,19 +196,19 @@ export default function ProfilePage() {
           dailyTarget: formData.dailyTarget,
           image: avatarData, // can be null; backend will handle
         }),
-      })
+      });
 
       if (res.ok) {
-        setIsEditing(false)
+        setIsEditing(false);
         // refresh local profile (so the avatar persists across reloads)
-        await fetchUserProfile()
+        await fetchUserProfile();
       }
     } catch (error) {
-      console.error("Error saving profile:", error)
+      console.error("Error saving profile:", error);
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
-  }
+  };
 
   if (status === "loading") {
     return (
@@ -208,23 +218,20 @@ export default function ProfilePage() {
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       </div>
-    )
+    );
   }
 
-  const userInitials =
-    (userProfile?.name ||
-      session?.user?.name ||
-      "U")
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
+  const userInitials = (userProfile?.name || session?.user?.name || "U")
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase();
 
   const formatTime = (minutes: number) => {
-    const hours = Math.floor(minutes / 60)
-    const mins = minutes % 60
-    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`
-  }
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  };
 
   const achievements = [
     {
@@ -263,7 +270,7 @@ export default function ProfilePage() {
       icon: Target,
       unlocked: stats.totalFocusTime >= 240,
     },
-  ]
+  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -277,8 +284,10 @@ export default function ProfilePage() {
               <div className="flex flex-col md:flex-row items-center gap-6">
                 <div className="flex flex-col items-center gap-3">
                   <Avatar
-                    className="h-24 w-24 ring-4 ring-background shadow-xl cursor-pointer"
-                    onClick={() => document.getElementById("avatarUpload")?.click()}
+                    className="h-24 w-24 rounded-full ring-4 ring-background shadow-xl cursor-pointer overflow-hidden"
+                    onClick={() =>
+                      document.getElementById("avatarUpload")?.click()
+                    }
                   >
                     <AvatarImage
                       src={
@@ -287,6 +296,7 @@ export default function ProfilePage() {
                         session?.user?.image ||
                         ""
                       }
+                      className="h-full w-full object-cover"
                     />
                     <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 text-primary-foreground text-2xl">
                       {userInitials}
@@ -301,16 +311,29 @@ export default function ProfilePage() {
                     onChange={handleAvatarChange}
                   />
 
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      document.getElementById("avatarUpload")?.click()
-                    }
-                  >
-                    <Camera className="h-4 w-4 mr-2" />
-                    Change Photo
-                  </Button>
+                  <div className="flex flex-col items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        document.getElementById("avatarUpload")?.click()
+                      }
+                    >
+                      <Camera className="h-4 w-4 mr-2" />
+                      Change Photo
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs text-destructive "
+                      onClick={handleRemovePhoto}
+                      disabled={isSaving}
+                    >
+                      <DeleteIcon className="h-4 w-4 mr-2" />
+                      Remove photo
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="flex-1 text-center md:text-left">
@@ -337,7 +360,9 @@ export default function ProfilePage() {
                 </div>
 
                 <Button
-                  onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
+                  onClick={() =>
+                    isEditing ? handleSave() : setIsEditing(true)
+                  }
                   disabled={isSaving}
                   className="gap-2"
                 >
@@ -452,7 +477,9 @@ export default function ProfilePage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="breakDuration">Break Duration (minutes)</Label>
+                    <Label htmlFor="breakDuration">
+                      Break Duration (minutes)
+                    </Label>
                     <Input
                       id="breakDuration"
                       type="number"
@@ -495,7 +522,7 @@ export default function ProfilePage() {
                       disabled={!isEditing}
                       type="button"
                       onClick={() => {
-                        router.push("/test-camera")
+                        router.push("/test-camera");
                       }}
                     >
                       <Camera className="h-4 w-4 mr-2" />
@@ -543,5 +570,5 @@ export default function ProfilePage() {
         </Tabs>
       </main>
     </div>
-  )
+  );
 }

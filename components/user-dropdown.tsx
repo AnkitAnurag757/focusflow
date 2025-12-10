@@ -26,7 +26,7 @@ export function UserDropdown() {
   const router = useRouter();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loaded, setLoaded] = useState(false); // prevent refetch on every re-render
+  const [loaded, setLoaded] = useState(false); // so we don't refetch on every page change
 
   useEffect(() => {
     if (status !== "authenticated" || loaded) return;
@@ -73,8 +73,11 @@ export function UserDropdown() {
           type="button"
           className="flex items-center gap-2 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={avatarSrc} />
+          <Avatar className="h-8 w-8 rounded-full overflow-hidden">
+            <AvatarImage
+              src={avatarSrc}
+              className="h-full w-full object-cover"
+            />
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
         </button>
