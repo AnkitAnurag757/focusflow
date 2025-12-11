@@ -159,21 +159,40 @@ export default function ProfilePage() {
     }
   };
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Show preview immediately
     const reader = new FileReader();
     reader.onloadend = () => {
-      const result = reader.result as string;
-      setAvatarPreview(result);
-      setAvatarData(result);
+      setAvatarPreview(reader.result as string);
     };
     reader.readAsDataURL(file);
+
+    // Upload to cloud storage
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/upload/avatar", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error("Upload failed");
+
+      const { url } = await response.json();
+      setAvatarData(url); // Store only the URL
+    } catch (error) {
+      console.error("Error uploading avatar:", error);
+      // Reset preview on error
+      setAvatarPreview(null);
+    }
   };
   const handleRemovePhoto = () => {
     setAvatarPreview(null);
-    setAvatarData(""); // special value meaning "clear image"
+    setAvatarData("REMOVE"); // Special marker
   };
 
   const handleSave = async () => {

@@ -10,7 +10,6 @@ export const authOptions: NextAuthOptions = {
   adapter: MongoDBAdapter(clientPromise) as any,
 
   providers: [
-    // Google OAuth
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
@@ -23,7 +22,6 @@ export const authOptions: NextAuthOptions = {
       },
     }),
 
-    // Credentials (Email/Password)
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -58,7 +56,7 @@ export const authOptions: NextAuthOptions = {
             id: user._id.toString(),
             email: user.email,
             name: user.name,
-            image: user.image,
+            // DO NOT include image here
           };
         } catch (error) {
           console.error("Auth error:", error);
@@ -81,14 +79,23 @@ export const authOptions: NextAuthOptions = {
   },
 
   callbacks: {
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger, session }) {
       // Initial sign in
       if (account && user) {
         return {
           ...token,
           id: user.id,
+          email: user.email,
+          name: user.name,
           provider: account.provider,
+          // Explicitly exclude image and other large data
         };
+      }
+
+      // Update token on session update (but don't include image)
+      if (trigger === "update" && session) {
+        if (session.name) token.name = session.name;
+        // Never include image in token
       }
 
       return token;
@@ -96,19 +103,18 @@ export const authOptions: NextAuthOptions = {
 
     async session({ session, token }) {
       if (session.user) {
-        // Attach the id to the session user without changing the declared Session type
         (session.user as any).id = token.id as string;
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
+        // DO NOT include image - fetch it separately via /api/users/me
       }
 
       return session;
     },
 
     async redirect({ url, baseUrl }) {
-      // Allows relative callback URLs
       if (url.startsWith("/")) return `${baseUrl}${url}`;
-      // Allows callback URLs on the same origin
       else if (new URL(url).origin === baseUrl) return url;
-
       return baseUrl;
     },
   },
@@ -117,10 +123,11 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user, account, isNewUser }) {
       console.log(`✅ User signed in: ${user.email} via ${account?.provider}`);
 
-      // Create default settings for new users
       if (isNewUser) {
         try {
           const db = await getDatabase();
+
+          // Create default settings
           await db.collection("userSettings").insertOne({
             userId: user.id || user.email,
             focusDuration: 25,
@@ -161,9 +168,6 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 };
 
-/**
- * Helper to get session server-side
- */
 export async function getServerAuthSession() {
   const { getServerSession } = await import("next-auth/next");
   return await getServerSession(authOptions);
